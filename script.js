@@ -374,8 +374,8 @@ header h1 i {
 
 .transaction-search,
 .transaction-sort {
-    min-width: 180px;
     flex: 1;
+    min-width: 180px;
 }
 
 .transactions-list {
@@ -673,3 +673,32 @@ header h1 i {
         gap: 10px;
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
