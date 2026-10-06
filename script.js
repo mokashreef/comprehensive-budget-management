@@ -2,9 +2,10 @@ class BudgetApp {
     constructor() {
         this.transactions = [];
         this.budgets = [];
+        this.editingTransactionId = null;
         this.categories = {
             food: { name: '🍔 طعام', color: '#e74c3c' },
-            transport: { name: '🚕 نقل', color: '#3498db' },
+            transport: { name: '🚕 ��قل', color: '#3498db' },
             shopping: { name: '🛍️ تسوق', color: '#9b59b6' },
             entertainment: { name: '🎬 ترفيه', color: '#f39c12' },
             health: { name: '🏥 صحة', color: '#e67e22' },
@@ -63,7 +64,8 @@ class BudgetApp {
             currencySelector: document.getElementById('currencySelector'),
             chartPeriod: document.getElementById('chartPeriod'),
             transactionType: document.getElementById('transactionTypeFilter'),
-            transactionCategory: document.getElementById('transactionCategoryFilter')
+            transactionCategory: document.getElementById('transactionCategoryFilter'),
+            transactionSearch: document.getElementById('transactionSearch')
         };
 
         this.displayElements = {
@@ -111,7 +113,7 @@ class BudgetApp {
 
         this.setupModalListeners();
         this.buttons.themeToggle.addEventListener('click', () => this.toggleTheme());
-        
+
         if (this.selectors.currencySelector) {
             this.selectors.currencySelector.addEventListener('change', (e) => this.changeCurrency(e.target.value));
         }
@@ -126,6 +128,7 @@ class BudgetApp {
             this.updateCategoryFilter();
         });
         this.selectors.transactionCategory.addEventListener('change', () => this.updateTransactionsList());
+        this.selectors.transactionSearch.addEventListener('input', () => this.updateTransactionsList());
     }
 
     setupModalListeners() {
@@ -146,17 +149,17 @@ class BudgetApp {
     addTransaction(type) {
         try {
             const form = this.forms[type];
-            const amount = this.getFormValue(`${type}Amount`);
+            const amount = Number(this.getFormValue(`${type}Amount`));
             const date = this.getFormValue(`${type}Date`);
             const description = this.getFormValue(`${type}Description`);
 
-            if (!this.validateAmount(amount)) {
-                this.showNotification('الرجاء إدخال مبلغ صحيح', 'error');
+            if (!this.validateAmount(amount) || !date) {
+                this.showNotification('الرجاء إدخال مبلغ وتاريخ صحيحين', 'error');
                 return;
             }
 
-            const transaction = {
-                id: Date.now().toString(),
+            const transactionData = {
+                id: this.editingTransactionId || Date.now().toString(),
                 type,
                 amount,
                 date,
@@ -165,19 +168,28 @@ class BudgetApp {
             };
 
             if (type === 'income') {
-                transaction.source = this.getFormValue('incomeSource');
+                transactionData.source = this.getFormValue('incomeSource');
             } else {
-                transaction.category = this.getFormValue('expenseCategory');
+                transactionData.category = this.getFormValue('expenseCategory');
             }
 
-            this.transactions.unshift(transaction);
+            if (this.editingTransactionId) {
+                const index = this.transactions.findIndex(item => item.id === this.editingTransactionId);
+                if (index >= 0) {
+                    this.transactions[index] = { ...this.transactions[index], ...transactionData };
+                    this.showNotification('تم تعديل العملية بنجاح', 'success');
+                }
+            } else {
+                this.transactions.unshift(transactionData);
+                this.showNotification(`تم إضافة ${type === 'income' ? 'الدخل' : 'المصروف'} بنجاح`, 'success');
+            }
+
+            this.editingTransactionId = null;
             this.saveData();
             this.updateDashboard();
             this.hideModal(this.modals[type]);
             form.reset();
             this.setDefaultDates();
-
-            this.showNotification(`تم إضافة ${type === 'income' ? 'الدخل' : 'المصروف'} بنجاح`, 'success');
             this.checkBudgetAlert();
         } catch (error) {
             console.error('Error adding transaction:', error);
@@ -187,12 +199,12 @@ class BudgetApp {
 
     setBudget() {
         try {
-            const amount = this.getFormValue('budgetAmount');
+            const amount = Number(this.getFormValue('budgetAmount'));
             const month = this.getFormValue('budgetMonth');
             const alertEnabled = document.getElementById('budgetAlert').checked;
 
-            if (!this.validateAmount(amount)) {
-                this.showNotification('الرجاء إدخال مبلغ صحيح', 'error');
+            if (!this.validateAmount(amount) || !month) {
+                this.showNotification('الرجاء إدخال مبلغ وشهر صحيحين', 'error');
                 return;
             }
 
@@ -232,22 +244,20 @@ class BudgetApp {
         const transaction = this.transactions.find(t => t.id === transactionId);
         if (!transaction) return;
 
-        const isIncome = transaction.type === 'income';
-        const prefix = transaction.type;
-        const type = transaction.type;
+        this.editingTransactionId = transactionId;
 
-        document.getElementById(`${prefix}Amount`).value = transaction.amount;
-        document.getElementById(`${prefix}Date`).value = transaction.date;
-        document.getElementById(`${prefix}Description`).value = transaction.description || '';
+        const labelPrefix = transaction.type === 'income' ? 'income' : 'expense';
+        document.getElementById(`${labelPrefix}Amount`).value = transaction.amount;
+        document.getElementById(`${labelPrefix}Date`).value = transaction.date;
+        document.getElementById(`${labelPrefix}Description`).value = transaction.description || '';
 
-        if (isIncome) {
-            document.getElementById('incomeSource').value = transaction.source;
+        if (transaction.type === 'income') {
+            document.getElementById('incomeSource').value = transaction.source || '';
         } else {
-            document.getElementById('expenseCategory').value = transaction.category;
+            document.getElementById('expenseCategory').value = transaction.category || 'food';
         }
 
-        this.showModal(type);
-        this.deleteTransaction(transactionId);
+        this.showModal(transaction.type);
     }
 
     updateDashboard() {
@@ -307,6 +317,7 @@ class BudgetApp {
     updateTransactionsList() {
         const typeFilter = this.selectors.transactionType.value;
         const categoryFilter = this.selectors.transactionCategory.value;
+        const searchTerm = (this.selectors.transactionSearch?.value || '').trim().toLowerCase();
 
         let filteredTransactions = this.transactions;
 
@@ -318,6 +329,21 @@ class BudgetApp {
             filteredTransactions = filteredTransactions.filter(t =>
                 t.type !== 'income' && t.category === categoryFilter
             );
+        }
+
+        if (searchTerm) {
+            filteredTransactions = filteredTransactions.filter(transaction => {
+                const searchableText = [
+                    transaction.type,
+                    transaction.description,
+                    transaction.source,
+                    transaction.category,
+                    this.categories[transaction.category]?.name || '',
+                    this.formatCurrency(transaction.amount)
+                ].filter(Boolean).join(' ').toLowerCase();
+
+                return searchableText.includes(searchTerm);
+            });
         }
 
         if (filteredTransactions.length === 0) {
@@ -583,7 +609,7 @@ class BudgetApp {
             const dataBlob = new Blob([dataStr], { type: 'application/json' });
             const url = URL.createObjectURL(dataBlob);
             const link = document.createElement('a');
-            
+
             link.href = url;
             link.download = `budget-data-${new Date().toISOString().split('T')[0]}.json`;
             document.body.appendChild(link);
@@ -735,7 +761,7 @@ class BudgetApp {
     }
 
     validateAmount(amount) {
-        return !isNaN(amount) && amount > 0;
+        return Number.isFinite(amount) && amount > 0;
     }
 
     showNotification(message, type = 'info') {
