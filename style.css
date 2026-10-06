@@ -17,9 +17,6 @@
     --transition: all 0.3s ease;
 }
 
-
-/* الوضع الليلي */
-
 [data-theme="dark"] {
     --primary-color: #2ecc71;
     --primary-dark: #27ae60;
@@ -36,7 +33,6 @@
     --shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
     --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.4);
 }
-
 
 * {
     margin: 0;
@@ -57,8 +53,6 @@ body {
     margin: 0 auto;
     padding: 20px;
 }
-
-
 
 .header-main {
     display: flex;
@@ -101,9 +95,6 @@ header h1 i {
     outline: none;
     border-color: var(--primary-color);
 }
-
-
-/* ملخص الميزانية */
 
 .budget-summary {
     display: grid;
@@ -213,7 +204,6 @@ header h1 i {
     color: var(--text-light);
 }
 
-
 .btn-primary,
 .btn-secondary,
 .btn-icon {
@@ -265,9 +255,6 @@ header h1 i {
     transform: scale(1.05);
 }
 
-
-/* لوحة التحكم */
-
 .dashboard {
     display: flex;
     flex-direction: column;
@@ -286,7 +273,6 @@ header h1 i {
     font-size: 1.5rem;
     font-weight: 600;
 }
-
 
 .actions-grid {
     display: grid;
@@ -341,9 +327,6 @@ header h1 i {
     margin-bottom: 5px;
 }
 
-
-/* الرسوم البيانية */
-
 .charts-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
@@ -375,7 +358,6 @@ header h1 i {
     height: 300px;
     width: 100%;
 }
-
 
 .transaction-filters {
     display: flex;
@@ -495,9 +477,6 @@ header h1 i {
 .transaction-actions .delete-btn:hover {
     color: var(--accent-color);
 }
-
-
-/* النماذج المنبثقة */
 
 .modal {
     display: none;
@@ -624,9 +603,6 @@ header h1 i {
     margin-top: 25px;
 }
 
-
-/* حالة فارغة */
-
 .empty-state {
     text-align: center;
     padding: 60px 20px;
@@ -642,7 +618,6 @@ header h1 i {
 .empty-state p {
     font-size: 1.2rem;
 }
-
 
 @media (max-width: 768px) {
     .container {

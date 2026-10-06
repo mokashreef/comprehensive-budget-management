@@ -14,7 +14,7 @@ class BudgetApp {
         };
 
         this.charts = {};
-        this.currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+        this.currentMonth = new Date().toISOString().slice(0, 7);
 
         this.currencies = {
             'USD': { locale: 'en-US', symbol: '$', suffix: false },
@@ -42,14 +42,13 @@ class BudgetApp {
         this.expenseForm = document.getElementById('expenseForm');
         this.budgetForm = document.getElementById('budgetForm');
 
-        // الأزرار
         this.addIncomeBtn = document.getElementById('addIncomeBtn');
         this.addExpenseBtn = document.getElementById('addExpenseBtn');
         this.setBudgetBtn = document.getElementById('setBudgetBtn');
         this.viewReportsBtn = document.getElementById('viewReportsBtn');
         this.themeToggle = document.getElementById('themeToggle');
         this.currencySelector = document.getElementById('currencySelector');
-        
+
         if (this.currencySelector) {
             this.currencySelector.value = this.currentCurrency;
         }
@@ -97,7 +96,6 @@ class BudgetApp {
             });
         });
 
-        // النقر خارج النموذج لإغلاقه
         document.querySelectorAll('.modal').forEach(modal => {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
@@ -167,7 +165,6 @@ class BudgetApp {
             createdAt: new Date().toISOString()
         };
 
-        // إزالة الميزانية القديمة لنفس الشهر
         this.budgets = this.budgets.filter(b => b.month !== month);
         this.budgets.push(budget);
 
@@ -189,7 +186,6 @@ class BudgetApp {
         this.showNotification('تم حذف العملية بنجاح', 'success');
     }
 
-    // تحرير عملية
     editTransaction(transactionId) {
         const transaction = this.transactions.find(t => t.id === transactionId);
         if (!transaction) return;
@@ -201,7 +197,6 @@ class BudgetApp {
             document.getElementById('incomeDescription').value = transaction.description || '';
             this.showModal('income');
 
-            // حذف العملية القديمة بعد التحرير
             this.deleteTransaction(transactionId);
         } else {
             document.getElementById('expenseAmount').value = transaction.amount;
@@ -210,12 +205,10 @@ class BudgetApp {
             document.getElementById('expenseDescription').value = transaction.description || '';
             this.showModal('expense');
 
-            // حذف العملية القديمة بعد التحرير
             this.deleteTransaction(transactionId);
         }
     }
 
-    // تحديث لوحة التحكم
     updateDashboard() {
         this.updateSummary();
         this.updateTransactionsList();
@@ -242,7 +235,6 @@ class BudgetApp {
         this.updateBudgetProgress(totalExpense);
     }
 
-    // تحديث تقدم الميزانية
     updateBudgetProgress(totalExpense) {
         const currentBudget = this.budgets.find(b => b.month === this.currentMonth);
         const budgetProgress = document.getElementById('budgetProgressFill');
@@ -257,7 +249,6 @@ class BudgetApp {
             budgetProgressText.textContent = `${displayProgress.toFixed(1)}%`;
             monthlyBudgetElement.textContent = this.formatCurrency(currentBudget.amount);
 
-            // تغيير اللون حسب النسبة
             if (displayProgress >= 100) {
                 budgetProgress.style.background = 'var(--accent-color)';
             } else if (displayProgress >= 80) {
@@ -272,7 +263,6 @@ class BudgetApp {
         }
     }
 
-    // تحديث قائمة العمليات
     updateTransactionsList() {
         const typeFilter = this.transactionTypeFilter.value;
         const categoryFilter = this.transactionCategoryFilter.value;
@@ -289,7 +279,6 @@ class BudgetApp {
             );
         }
 
-        // عرض العمليات
         if (filteredTransactions.length === 0) {
             this.transactionsList.innerHTML = `
                 <div class="empty-state">
@@ -299,13 +288,12 @@ class BudgetApp {
             `;
         } else {
             this.transactionsList.innerHTML = filteredTransactions
-                .slice(0, 10) // آخر 10 عمليات فقط
+                .slice(0, 10)
                 .map(transaction => this.createTransactionElement(transaction))
                 .join('');
         }
     }
 
-    // تحديث فلاتر التصنيفات
     updateCategoryFilter() {
             const typeFilter = this.transactionTypeFilter.value;
             const categoryFilter = document.getElementById('transactionCategoryFilter');
@@ -323,12 +311,12 @@ class BudgetApp {
             categoryFilter.disabled = false;
         }
     }
-    
+
     createTransactionElement(transaction) {
         const isIncome = transaction.type === 'income';
         const icon = isIncome ? 'fa-arrow-down' : 'fa-arrow-up';
         const categoryName = isIncome ? transaction.source : this.categories[transaction.category]?.name;
-        
+
         return `
             <div class="transaction-item transaction-${transaction.type}">
                 <div class="transaction-info">
@@ -358,13 +346,13 @@ class BudgetApp {
             </div>
         `;
     }
-    
+
     initializeCharts() {
         this.createExpenseChart();
         this.createComparisonChart();
         this.createTrendChart();
     }
-    
+
     updateCharts() {
         if (this.charts.expenseChart) {
             this.charts.expenseChart.destroy();
@@ -375,15 +363,15 @@ class BudgetApp {
         if (this.charts.trendChart) {
             this.charts.trendChart.destroy();
         }
-        
+
         this.initializeCharts();
     }
-    
+
     createExpenseChart() {
         const ctx = document.getElementById('expenseChart').getContext('2d');
         const period = this.chartPeriod.value;
         const expenses = this.getFilteredTransactions('expense', period);
-        
+
         const categoryData = {};
         expenses.forEach(expense => {
             const category = expense.category;
@@ -392,11 +380,11 @@ class BudgetApp {
             }
             categoryData[category] += expense.amount;
         });
-        
+
         const labels = Object.keys(categoryData).map(key => this.categories[key]?.name);
         const data = Object.values(categoryData);
         const backgroundColors = Object.keys(categoryData).map(key => this.categories[key]?.color);
-        
+
         this.charts.expenseChart = new Chart(ctx, {
             type: 'doughnut',
             data: {
@@ -430,12 +418,11 @@ class BudgetApp {
             }
         });
     }
-    
-    // رسم بياني للمقارنة بين الدخل والمصروفات
+
     createComparisonChart() {
         const ctx = document.getElementById('comparisonChart').getContext('2d');
         const period = this.chartPeriod.value;
-        
+
         const months = this.getMonths(period);
         const incomeData = months.map(month => 
             this.getMonthlyTotal('income', month)
@@ -443,7 +430,7 @@ class BudgetApp {
         const expenseData = months.map(month => 
             this.getMonthlyTotal('expense', month)
         );
-        
+
         this.charts.comparisonChart = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -493,19 +480,18 @@ class BudgetApp {
             }
         });
     }
-    
-    // رسم بياني للاتجاه المالي
+
     createTrendChart() {
         const ctx = document.getElementById('trendChart').getContext('2d');
         const period = this.chartPeriod.value;
-        
+
         const months = this.getMonths(period);
         const balanceData = months.map(month => {
             const income = this.getMonthlyTotal('income', month);
             const expense = this.getMonthlyTotal('expense', month);
             return income - expense;
         });
-        
+
         this.charts.trendChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -547,18 +533,17 @@ class BudgetApp {
             }
         });
     }
-    
-    // التحقق من تنبيهات الميزانية
+
     checkBudgetAlert() {
         const currentBudget = this.budgets.find(b => b.month === this.currentMonth);
         if (!currentBudget || !currentBudget.alertEnabled) return;
-        
+
         const currentMonthExpenses = this.getCurrentMonthTransactions()
             .filter(t => t.type === 'expense')
             .reduce((sum, t) => sum + t.amount, 0);
-        
+
         const progress = (currentMonthExpenses / currentBudget.amount) * 100;
-        
+
         if (progress >= 80 && progress < 100) {
             this.showNotification(
                 `تحذير: لقد استهلكت ${progress.toFixed(1)}% من ميزانيتك الشهرية!`,
@@ -571,61 +556,56 @@ class BudgetApp {
             );
         }
     }
-    
+
     showModal(type) {
         const modal = document.getElementById(`${type}Modal`);
         modal.classList.add('show');
-        
+
         const today = new Date().toISOString().split('T')[0];
         if (type !== 'budget') {
             document.getElementById(`${type}Date`).value = today;
         }
     }
-    
-    // إخفاء النموذج
+
     hideModal(modal) {
         modal.classList.remove('show');
     }
-    
-    // تبديل السمة
+
     toggleTheme() {
         const currentTheme = document.body.getAttribute('data-theme');
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        
+
         document.body.setAttribute('data-theme', newTheme);
         localStorage.setItem('budgetTheme', newTheme);
-        
+
         const icon = this.themeToggle.querySelector('i');
         icon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-        
+
         this.showNotification(`تم التبديل إلى الوضع ${newTheme === 'dark' ? 'الليلي' : 'النهاري'}`, 'info');
-        
-        // إعادة رسم الرسوم البيانية
+
         setTimeout(() => this.updateCharts(), 300);
     }
-    
-    // تحميل السمة
+
     loadTheme() {
         const savedTheme = localStorage.getItem('budgetTheme') || 'light';
         document.body.setAttribute('data-theme', savedTheme);
-        
+
         const icon = this.themeToggle.querySelector('i');
         if (icon) {
             icon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
         }
     }
-    
-    // تصدير البيانات
+
     exportDataToFile() {
         const data = {
             transactions: this.transactions,
             budgets: this.budgets,
             exportDate: new Date().toISOString()
         };
-        
+
         const dataStr = JSON.stringify(data, null, 2);
         const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        
+
         const url = URL.createObjectURL(dataBlob);
         const link = document.createElement('a');
         link.href = url;
@@ -634,43 +614,41 @@ class BudgetApp {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        
+
         this.showNotification('تم تصدير البيانات بنجاح', 'success');
     }
-    
-    // استيراد البيانات
+
     importDataFromFile(event) {
         const file = event.target.files[0];
         if (!file) return;
-        
+
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
                 const importedData = JSON.parse(e.target.result);
-                
+
                 if (importedData.transactions) {
                     this.transactions = importedData.transactions;
                 }
                 if (importedData.budgets) {
                     this.budgets = importedData.budgets;
                 }
-                
+
                 this.saveData();
                 this.updateDashboard();
-                
+
                 this.showNotification('تم استيراد البيانات بنجاح', 'success');
             } catch (error) {
                 this.showNotification('خطأ في استيراد الملف. تأكد من صحة التنسيق', 'error');
                 console.error('استيراد البيانات فشل:', error);
             }
-            
+
             event.target.value = '';
         };
-        
+
         reader.readAsText(file);
     }
-    
-    // حفظ البيانات
+
     saveData() {
         const data = {
             transactions: this.transactions,
@@ -679,8 +657,7 @@ class BudgetApp {
         };
         localStorage.setItem('budgetData', JSON.stringify(data));
     }
-    
-    // تحميل البيانات
+
     loadData() {
         const savedData = localStorage.getItem('budgetData');
         if (savedData) {
@@ -695,31 +672,30 @@ class BudgetApp {
             }
         }
     }
-    
-    // أدوات مساعدة
+
     getCurrentMonthTransactions() {
         return this.transactions.filter(t => 
             t.date.startsWith(this.currentMonth)
         );
     }
-    
+
     getFilteredTransactions(type, period) {
         let transactions = this.transactions.filter(t => t.type === type);
-        
+
         if (period === 'month') {
             transactions = transactions.filter(t => t.date.startsWith(this.currentMonth));
         } else if (period === 'year') {
             const currentYear = new Date().getFullYear();
             transactions = transactions.filter(t => t.date.startsWith(currentYear));
         }
-        
+
         return transactions;
     }
-    
+
     getMonths(period) {
         const months = [];
         const currentDate = new Date();
-        
+
         if (period === 'month') {
             months.push(this.currentMonth);
         } else if (period === 'year') {
@@ -727,71 +703,67 @@ class BudgetApp {
                 const date = new Date(currentDate.getFullYear(), i, 1);
                 months.push(date.toISOString().slice(0, 7));
             }
-        } else { 
+        } else {
             const allMonths = [...new Set(this.transactions.map(t => t.date.slice(0, 7)))];
-            months.push(...allMonths.sort().slice(-12)); // آخر 12 شهر
+            months.push(...allMonths.sort().slice(-12));
         }
-        
+
         return months;
     }
-    
+
     getMonthlyTotal(type, month) {
         return this.transactions
             .filter(t => t.type === type && t.date.startsWith(month))
             .reduce((sum, t) => sum + t.amount, 0);
     }
-    
+
     formatCurrency(amount) {
         const currencySetting = this.currencies[this.currentCurrency] || this.currencies['USD'];
-        
+
         let formattedStr = new Intl.NumberFormat(currencySetting.locale, {
             style: 'decimal',
             minimumFractionDigits: 0,
             maximumFractionDigits: 2
         }).format(amount);
-        
+
         if (currencySetting.suffix) {
             return formattedStr + ' ' + currencySetting.symbol;
         } else {
             return currencySetting.symbol + formattedStr;
         }
     }
-    
+
     changeCurrency(newCurrency) {
         this.currentCurrency = newCurrency;
         localStorage.setItem('budgetCurrency', newCurrency);
         this.updateDashboard();
-        
-        // إعادة رسم الرسوم البيانية لتحديث العملة
+
         setTimeout(() => this.updateCharts(), 100);
     }
-    
+
     formatDate(dateString) {
         return new Date(dateString).toLocaleDateString('ar-EG');
     }
-    
+
     formatMonth(monthString) {
         const date = new Date(monthString + '-01');
         return date.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long' });
     }
-    
-    // عرض الإشعارات
+
     showNotification(message, type = 'info') {
         const existingNotification = document.querySelector('.notification');
         if (existingNotification) {
             existingNotification.remove();
         }
-        
-        // إنشاء إشعار جديد
+
         const notification = document.createElement('div');
         notification.className = 'notification';
         notification.textContent = message;
-        
-        // إضافة الأنماط
-        const backgroundColor = type === 'error' ? '#e74c3c' : 
+
+        const backgroundColor = type === 'error' ? '#e74c3c' :
                               type === 'warning' ? '#f39c12' : 
                               type === 'success' ? '#2ecc71' : '#3498db';
-        
+
         notification.style.cssText = `
             position: fixed;
             top: 20px;
@@ -807,15 +779,14 @@ class BudgetApp {
             transition: transform 0.3s, opacity 0.3s;
             max-width: 400px;
         `;
-        
+
         document.body.appendChild(notification);
-        
-        // عرض الإشعار
+
         setTimeout(() => {
             notification.style.transform = 'translateX(0)';
             notification.style.opacity = '1';
         }, 100);
-        
+
         setTimeout(() => {
             notification.style.transform = 'translateX(-100%)';
             notification.style.opacity = '0';
@@ -828,7 +799,6 @@ class BudgetApp {
     }
 }
 
-// تهيئة التطبيق عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', () => {
     window.budgetApp = new BudgetApp();
     window.budgetApp.loadTheme();
