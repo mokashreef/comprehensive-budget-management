@@ -1,821 +1,675 @@
-class BudgetApp {
-    constructor() {
-        this.transactions = [];
-        this.budgets = [];
-        this.editingTransactionId = null;
-        this.categories = {
-            food: { name: '🍔 طعام', color: '#e74c3c' },
-            transport: { name: '🚕 ��قل', color: '#3498db' },
-            shopping: { name: '🛍️ تسوق', color: '#9b59b6' },
-            entertainment: { name: '🎬 ترفيه', color: '#f39c12' },
-            health: { name: '🏥 صحة', color: '#e67e22' },
-            education: { name: '📚 تعليم', color: '#1abc9c' },
-            bills: { name: '💡 فواتير', color: '#34495e' },
-            other: { name: '📦 أخرى', color: '#95a5a6' }
-        };
+:root {
+    --primary-color: #2ecc71;
+    --primary-dark: #27ae60;
+    --secondary-color: #3498db;
+    --accent-color: #e74c3c;
+    --warning-color: #f39c12;
+    --light-color: #f8f9fa;
+    --dark-color: #2c3e50;
+    --text-color: #2c3e50;
+    --text-light: #7f8c8d;
+    --bg-color: #ffffff;
+    --card-bg: #ffffff;
+    --border-color: #e1e8ed;
+    --shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.12);
+    --border-radius: 12px;
+    --transition: all 0.3s ease;
+}
 
-        this.charts = {};
-        this.currentMonth = new Date().toISOString().slice(0, 7);
+[data-theme="dark"] {
+    --primary-color: #2ecc71;
+    --primary-dark: #27ae60;
+    --secondary-color: #3498db;
+    --accent-color: #e74c3c;
+    --warning-color: #f39c12;
+    --light-color: #2c3e50;
+    --dark-color: #ecf0f1;
+    --text-color: #ecf0f1;
+    --text-light: #bdc3c7;
+    --bg-color: #1a2530;
+    --card-bg: #243447;
+    --border-color: #34495e;
+    --shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
 
-        this.currencies = {
-            'USD': { locale: 'en-US', symbol: '$', suffix: false },
-            'SYP': { locale: 'ar-SY', symbol: 'ل.س', suffix: true },
-            'SAR': { locale: 'ar-SA', symbol: 'ر.س', suffix: true },
-            'AED': { locale: 'ar-AE', symbol: 'د.إ', suffix: true },
-            'EGP': { locale: 'ar-EG', symbol: 'ج.م', suffix: true },
-            'EUR': { locale: 'en-IE', symbol: '€', suffix: false }
-        };
-        this.currentCurrency = localStorage.getItem('budgetCurrency') || 'USD';
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-        this.init();
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    transition: var(--transition);
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.header-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+header h1 {
+    color: var(--primary-color);
+    font-size: 2.2rem;
+    font-weight: 700;
+}
+
+header h1 i {
+    margin-left: 10px;
+}
+
+.header-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.currency-selector,
+.transaction-search,
+.transaction-sort,
+.transaction-filters select {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-family: inherit;
+    transition: var(--transition);
+}
+
+.currency-selector:focus,
+.transaction-search:focus,
+.transaction-sort:focus,
+.transaction-filters select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.08);
+}
+
+.budget-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.summary-card {
+    background: var(--card-bg);
+    padding: 25px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    transition: var(--transition);
+    border-left: 4px solid transparent;
+}
+
+.summary-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.summary-card.income {
+    border-left-color: var(--primary-color);
+}
+
+.summary-card.expense {
+    border-left-color: var(--accent-color);
+}
+
+.summary-card.balance {
+    border-left-color: var(--secondary-color);
+}
+
+.summary-card.budget {
+    border-left-color: var(--warning-color);
+}
+
+.summary-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.summary-card.income .summary-icon {
+    background: rgba(46, 204, 113, 0.1);
+    color: var(--primary-color);
+}
+
+.summary-card.expense .summary-icon {
+    background: rgba(231, 76, 60, 0.1);
+    color: var(--accent-color);
+}
+
+.summary-card.balance .summary-icon {
+    background: rgba(52, 152, 219, 0.1);
+    color: var(--secondary-color);
+}
+
+.summary-card.budget .summary-icon {
+    background: rgba(243, 156, 18, 0.1);
+    color: var(--warning-color);
+}
+
+.summary-label {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    margin-bottom: 5px;
+}
+
+.summary-amount {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+.budget-progress {
+    margin-top: 10px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--light-color);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 5px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
+    border-radius: 3px;
+    transition: width 0.5s ease;
+    width: 0%;
+}
+
+.progress-text {
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-icon {
+    padding: 12px 20px;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-weight: 500;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 0.95rem;
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+
+.btn-secondary {
+    background: var(--light-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: var(--border-color);
+    transform: translateY(-2px);
+}
+
+.btn-icon {
+    width: 44px;
+    height: 44px;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 50%;
+}
+
+.btn-icon:hover {
+    background: var(--primary-dark);
+    transform: scale(1.05);
+}
+
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.section-header h2 {
+    color: var(--text-color);
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.action-btn {
+    background: var(--card-bg);
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 25px 20px;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.action-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--primary-color);
+}
+
+.action-btn.income:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.action-btn.expense:hover {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+}
+
+.action-btn.budget:hover {
+    border-color: var(--warning-color);
+    color: var(--warning-color);
+}
+
+.action-btn.reports:hover {
+    border-color: var(--secondary-color);
+    color: var(--secondary-color);
+}
+
+.action-btn i {
+    font-size: 2rem;
+    margin-bottom: 5px;
+}
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+}
+
+.chart-card {
+    background: var(--card-bg);
+    padding: 25px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+}
+
+.chart-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.chart-card h3 {
+    margin-bottom: 20px;
+    color: var(--text-color);
+    font-size: 1.2rem;
+    text-align: center;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+.transaction-filters {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.transaction-search,
+.transaction-sort {
+    min-width: 180px;
+    flex: 1;
+}
+
+.transactions-list {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.transaction-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.transaction-item:last-child {
+    border-bottom: none;
+}
+
+.transaction-item:hover {
+    background: var(--light-color);
+}
+
+.transaction-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex: 1;
+}
+
+.transaction-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.transaction-income .transaction-icon {
+    background: rgba(46, 204, 113, 0.1);
+    color: var(--primary-color);
+}
+
+.transaction-expense .transaction-icon {
+    background: rgba(231, 76, 60, 0.1);
+    color: var(--accent-color);
+}
+
+.transaction-details h4 {
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: var(--text-color);
+}
+
+.transaction-details .category {
+    font-size: 0.9rem;
+    color: var(--text-light);
+}
+
+.transaction-amount {
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.transaction-income .transaction-amount {
+    color: var(--primary-color);
+}
+
+.transaction-expense .transaction-amount {
+    color: var(--accent-color);
+}
+
+.transaction-date {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    margin-left: 20px;
+}
+
+.transaction-actions {
+    display: flex;
+    gap: 10px;
+    margin-left: 20px;
+}
+
+.transaction-actions button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-light);
+    transition: var(--transition);
+    padding: 5px;
+    border-radius: 4px;
+}
+
+.transaction-actions button:hover {
+    color: var(--primary-color);
+    background: var(--light-color);
+}
+
+.transaction-actions .delete-btn:hover {
+    color: var(--accent-color);
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal.show {
+    display: flex;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: scaleIn 0.3s ease;
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
     }
-
-    init() {
-        this.initializeElements();
-        this.loadData();
-        this.setupEventListeners();
-        this.updateDashboard();
-        this.initializeCharts();
-    }
-
-    initializeElements() {
-        this.modals = {
-            income: document.getElementById('incomeModal'),
-            expense: document.getElementById('expenseModal'),
-            budget: document.getElementById('budgetModal')
-        };
-
-        this.forms = {
-            income: document.getElementById('incomeForm'),
-            expense: document.getElementById('expenseForm'),
-            budget: document.getElementById('budgetForm')
-        };
-
-        this.buttons = {
-            addIncome: document.getElementById('addIncomeBtn'),
-            addExpense: document.getElementById('addExpenseBtn'),
-            setBudget: document.getElementById('setBudgetBtn'),
-            themeToggle: document.getElementById('themeToggle'),
-            exportData: document.getElementById('exportData'),
-            importData: document.getElementById('importData')
-        };
-
-        this.selectors = {
-            currencySelector: document.getElementById('currencySelector'),
-            chartPeriod: document.getElementById('chartPeriod'),
-            transactionType: document.getElementById('transactionTypeFilter'),
-            transactionCategory: document.getElementById('transactionCategoryFilter'),
-            transactionSearch: document.getElementById('transactionSearch')
-        };
-
-        this.displayElements = {
-            transactionsList: document.getElementById('transactionsList'),
-            importFile: document.getElementById('importFile')
-        };
-
-        if (this.selectors.currencySelector) {
-            this.selectors.currencySelector.value = this.currentCurrency;
-        }
-
-        this.setDefaultDates();
-    }
-
-    setDefaultDates() {
-        const today = new Date().toISOString().split('T')[0];
-        const dateFields = ['incomeDate', 'expenseDate', 'budgetMonth'];
-        dateFields.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) {
-                element.value = id === 'budgetMonth' ? this.currentMonth : today;
-            }
-        });
-    }
-
-    setupEventListeners() {
-        this.buttons.addIncome.addEventListener('click', () => this.showModal('income'));
-        this.buttons.addExpense.addEventListener('click', () => this.showModal('expense'));
-        this.buttons.setBudget.addEventListener('click', () => this.showModal('budget'));
-
-        this.forms.income.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.addTransaction('income');
-        });
-
-        this.forms.expense.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.addTransaction('expense');
-        });
-
-        this.forms.budget.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.setBudget();
-        });
-
-        this.setupModalListeners();
-        this.buttons.themeToggle.addEventListener('click', () => this.toggleTheme());
-
-        if (this.selectors.currencySelector) {
-            this.selectors.currencySelector.addEventListener('change', (e) => this.changeCurrency(e.target.value));
-        }
-
-        this.buttons.exportData.addEventListener('click', () => this.exportDataToFile());
-        this.buttons.importData.addEventListener('click', () => this.displayElements.importFile.click());
-        this.displayElements.importFile.addEventListener('change', (e) => this.importDataFromFile(e));
-
-        this.selectors.chartPeriod.addEventListener('change', () => this.updateCharts());
-        this.selectors.transactionType.addEventListener('change', () => {
-            this.updateTransactionsList();
-            this.updateCategoryFilter();
-        });
-        this.selectors.transactionCategory.addEventListener('change', () => this.updateTransactionsList());
-        this.selectors.transactionSearch.addEventListener('input', () => this.updateTransactionsList());
-    }
-
-    setupModalListeners() {
-        document.querySelectorAll('.close-btn, .cancel-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const modal = e.target.closest('.modal');
-                if (modal) this.hideModal(modal);
-            });
-        });
-
-        document.querySelectorAll('.modal').forEach(modal => {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) this.hideModal(modal);
-            });
-        });
-    }
-
-    addTransaction(type) {
-        try {
-            const form = this.forms[type];
-            const amount = Number(this.getFormValue(`${type}Amount`));
-            const date = this.getFormValue(`${type}Date`);
-            const description = this.getFormValue(`${type}Description`);
-
-            if (!this.validateAmount(amount) || !date) {
-                this.showNotification('الرجاء إدخال مبلغ وتاريخ صحيحين', 'error');
-                return;
-            }
-
-            const transactionData = {
-                id: this.editingTransactionId || Date.now().toString(),
-                type,
-                amount,
-                date,
-                description,
-                createdAt: new Date().toISOString()
-            };
-
-            if (type === 'income') {
-                transactionData.source = this.getFormValue('incomeSource');
-            } else {
-                transactionData.category = this.getFormValue('expenseCategory');
-            }
-
-            if (this.editingTransactionId) {
-                const index = this.transactions.findIndex(item => item.id === this.editingTransactionId);
-                if (index >= 0) {
-                    this.transactions[index] = { ...this.transactions[index], ...transactionData };
-                    this.showNotification('تم تعديل العملية بنجاح', 'success');
-                }
-            } else {
-                this.transactions.unshift(transactionData);
-                this.showNotification(`تم إضافة ${type === 'income' ? 'الدخل' : 'المصروف'} بنجاح`, 'success');
-            }
-
-            this.editingTransactionId = null;
-            this.saveData();
-            this.updateDashboard();
-            this.hideModal(this.modals[type]);
-            form.reset();
-            this.setDefaultDates();
-            this.checkBudgetAlert();
-        } catch (error) {
-            console.error('Error adding transaction:', error);
-            this.showNotification('حدث خطأ أثناء إضافة العملية', 'error');
-        }
-    }
-
-    setBudget() {
-        try {
-            const amount = Number(this.getFormValue('budgetAmount'));
-            const month = this.getFormValue('budgetMonth');
-            const alertEnabled = document.getElementById('budgetAlert').checked;
-
-            if (!this.validateAmount(amount) || !month) {
-                this.showNotification('الرجاء إدخال مبلغ وشهر صحيحين', 'error');
-                return;
-            }
-
-            const budget = {
-                id: Date.now().toString(),
-                amount,
-                month,
-                alertEnabled,
-                createdAt: new Date().toISOString()
-            };
-
-            this.budgets = this.budgets.filter(b => b.month !== month);
-            this.budgets.push(budget);
-
-            this.saveData();
-            this.updateDashboard();
-            this.hideModal(this.modals.budget);
-            this.forms.budget.reset();
-
-            this.showNotification('تم تعيين الميزانية بنجاح', 'success');
-        } catch (error) {
-            console.error('Error setting budget:', error);
-            this.showNotification('حدث خطأ أثناء تعيين الميزانية', 'error');
-        }
-    }
-
-    deleteTransaction(transactionId) {
-        if (!confirm('هل أنت متأكد من حذف هذه العملية؟')) return;
-
-        this.transactions = this.transactions.filter(t => t.id !== transactionId);
-        this.saveData();
-        this.updateDashboard();
-        this.showNotification('تم حذف العملية بنجاح', 'success');
-    }
-
-    editTransaction(transactionId) {
-        const transaction = this.transactions.find(t => t.id === transactionId);
-        if (!transaction) return;
-
-        this.editingTransactionId = transactionId;
-
-        const labelPrefix = transaction.type === 'income' ? 'income' : 'expense';
-        document.getElementById(`${labelPrefix}Amount`).value = transaction.amount;
-        document.getElementById(`${labelPrefix}Date`).value = transaction.date;
-        document.getElementById(`${labelPrefix}Description`).value = transaction.description || '';
-
-        if (transaction.type === 'income') {
-            document.getElementById('incomeSource').value = transaction.source || '';
-        } else {
-            document.getElementById('expenseCategory').value = transaction.category || 'food';
-        }
-
-        this.showModal(transaction.type);
-    }
-
-    updateDashboard() {
-        this.updateSummary();
-        this.updateTransactionsList();
-        this.updateCharts();
-    }
-
-    updateSummary() {
-        const currentMonthTransactions = this.getCurrentMonthTransactions();
-
-        const totalIncome = currentMonthTransactions
-            .filter(t => t.type === 'income')
-            .reduce((sum, t) => sum + t.amount, 0);
-
-        const totalExpense = currentMonthTransactions
-            .filter(t => t.type === 'expense')
-            .reduce((sum, t) => sum + t.amount, 0);
-
-        const balance = totalIncome - totalExpense;
-
-        document.getElementById('totalIncome').textContent = this.formatCurrency(totalIncome);
-        document.getElementById('totalExpense').textContent = this.formatCurrency(totalExpense);
-        document.getElementById('remainingBalance').textContent = this.formatCurrency(balance);
-
-        this.updateBudgetProgress(totalExpense);
-    }
-
-    updateBudgetProgress(totalExpense) {
-        const currentBudget = this.budgets.find(b => b.month === this.currentMonth);
-        const budgetProgress = document.getElementById('budgetProgressFill');
-        const budgetProgressText = document.getElementById('budgetProgressText');
-        const monthlyBudgetElement = document.getElementById('monthlyBudget');
-
-        if (currentBudget) {
-            const progress = (totalExpense / currentBudget.amount) * 100;
-            const displayProgress = Math.min(progress, 100);
-
-            budgetProgress.style.width = `${displayProgress}%`;
-            budgetProgressText.textContent = `${displayProgress.toFixed(1)}%`;
-            monthlyBudgetElement.textContent = this.formatCurrency(currentBudget.amount);
-
-            if (displayProgress >= 100) {
-                budgetProgress.style.background = 'var(--accent-color)';
-            } else if (displayProgress >= 80) {
-                budgetProgress.style.background = 'var(--warning-color)';
-            } else {
-                budgetProgress.style.background = 'linear-gradient(90deg, var(--primary-color), var(--primary-dark))';
-            }
-        } else {
-            budgetProgress.style.width = '0%';
-            budgetProgressText.textContent = '0%';
-            monthlyBudgetElement.textContent = this.formatCurrency(0);
-        }
-    }
-
-    updateTransactionsList() {
-        const typeFilter = this.selectors.transactionType.value;
-        const categoryFilter = this.selectors.transactionCategory.value;
-        const searchTerm = (this.selectors.transactionSearch?.value || '').trim().toLowerCase();
-
-        let filteredTransactions = this.transactions;
-
-        if (typeFilter !== 'all') {
-            filteredTransactions = filteredTransactions.filter(t => t.type === typeFilter);
-        }
-
-        if (categoryFilter !== 'all') {
-            filteredTransactions = filteredTransactions.filter(t =>
-                t.type !== 'income' && t.category === categoryFilter
-            );
-        }
-
-        if (searchTerm) {
-            filteredTransactions = filteredTransactions.filter(transaction => {
-                const searchableText = [
-                    transaction.type,
-                    transaction.description,
-                    transaction.source,
-                    transaction.category,
-                    this.categories[transaction.category]?.name || '',
-                    this.formatCurrency(transaction.amount)
-                ].filter(Boolean).join(' ').toLowerCase();
-
-                return searchableText.includes(searchTerm);
-            });
-        }
-
-        if (filteredTransactions.length === 0) {
-            this.displayElements.transactionsList.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-receipt"></i>
-                    <p>لا توجد عمليات لعرضها</p>
-                </div>
-            `;
-        } else {
-            this.displayElements.transactionsList.innerHTML = filteredTransactions
-                .slice(0, 10)
-                .map(transaction => this.createTransactionElement(transaction))
-                .join('');
-        }
-    }
-
-    updateCategoryFilter() {
-        const typeFilter = this.selectors.transactionType.value;
-        const categoryFilter = this.selectors.transactionCategory;
-
-        if (typeFilter === 'income') {
-            categoryFilter.innerHTML = '<option value="all">جميع التصنيفات</option>';
-            categoryFilter.disabled = true;
-        } else {
-            categoryFilter.innerHTML = `
-                <option value="all">جميع التصنيفات</option>
-                ${Object.entries(this.categories).map(([key, category]) => 
-                    `<option value="${key}">${category.name}</option>`
-                ).join('')}
-            `;
-            categoryFilter.disabled = false;
-        }
-    }
-
-    createTransactionElement(transaction) {
-        const isIncome = transaction.type === 'income';
-        const icon = isIncome ? 'fa-arrow-down' : 'fa-arrow-up';
-        const categoryName = isIncome ? transaction.source : this.categories[transaction.category]?.name;
-
-        return `
-            <div class="transaction-item transaction-${transaction.type}">
-                <div class="transaction-info">
-                    <div class="transaction-icon">
-                        <i class="fas ${icon}"></i>
-                    </div>
-                    <div class="transaction-details">
-                        <h4>${isIncome ? 'دخل' : 'مصروف'}</h4>
-                        <div class="category">${categoryName}</div>
-                        ${transaction.description ? `<div class="description">${transaction.description}</div>` : ''}
-                    </div>
-                </div>
-                <div class="transaction-amount">
-                    ${isIncome ? '+' : '-'} ${this.formatCurrency(transaction.amount)}
-                </div>
-                <div class="transaction-date">
-                    ${this.formatDate(transaction.date)}
-                </div>
-                <div class="transaction-actions">
-                    <button class="edit-btn" onclick="budgetApp.editTransaction('${transaction.id}')" title="تعديل">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="delete-btn" onclick="budgetApp.deleteTransaction('${transaction.id}')" title="حذف">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    }
-
-    initializeCharts() {
-        this.createExpenseChart();
-        this.createComparisonChart();
-        this.createTrendChart();
-    }
-
-    updateCharts() {
-        Object.values(this.charts).forEach(chart => {
-            if (chart) chart.destroy();
-        });
-        this.initializeCharts();
-    }
-
-    createExpenseChart() {
-        const ctx = document.getElementById('expenseChart')?.getContext('2d');
-        if (!ctx) return;
-
-        const period = this.selectors.chartPeriod.value;
-        const expenses = this.getFilteredTransactions('expense', period);
-
-        const categoryData = {};
-        expenses.forEach(expense => {
-            const category = expense.category;
-            categoryData[category] = (categoryData[category] || 0) + expense.amount;
-        });
-
-        const labels = Object.keys(categoryData).map(key => this.categories[key]?.name);
-        const data = Object.values(categoryData);
-        const backgroundColors = Object.keys(categoryData).map(key => this.categories[key]?.color);
-
-        this.charts.expenseChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: { labels, datasets: [{ data, backgroundColor: backgroundColors, borderWidth: 2, borderColor: '#fff' }] },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom', rtl: true },
-                    tooltip: {
-                        callbacks: {
-                            label: (context) => {
-                                const value = context.raw;
-                                const total = data.reduce((a, b) => a + b, 0);
-                                const percentage = ((value / total) * 100).toFixed(1);
-                                return `${this.formatCurrency(value)} (${percentage}%)`;
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    createComparisonChart() {
-        const ctx = document.getElementById('comparisonChart')?.getContext('2d');
-        if (!ctx) return;
-
-        const period = this.selectors.chartPeriod.value;
-        const months = this.getMonths(period);
-        const incomeData = months.map(month => this.getMonthlyTotal('income', month));
-        const expenseData = months.map(month => this.getMonthlyTotal('expense', month));
-
-        this.charts.comparisonChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: months.map(month => this.formatMonth(month)),
-                datasets: [
-                    { label: 'الدخل', data: incomeData, backgroundColor: 'rgba(46, 204, 113, 0.8)', borderColor: 'rgba(46, 204, 113, 1)', borderWidth: 1 },
-                    { label: 'المصروفات', data: expenseData, backgroundColor: 'rgba(231, 76, 60, 0.8)', borderColor: 'rgba(231, 76, 60, 1)', borderWidth: 1 }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: { grid: { display: false } },
-                    y: { beginAtZero: true, ticks: { callback: (value) => this.formatCurrency(value) } }
-                },
-                plugins: { tooltip: { callbacks: { label: (context) => `${context.dataset.label}: ${this.formatCurrency(context.raw)}` } } }
-            }
-        });
-    }
-
-    createTrendChart() {
-        const ctx = document.getElementById('trendChart')?.getContext('2d');
-        if (!ctx) return;
-
-        const period = this.selectors.chartPeriod.value;
-        const months = this.getMonths(period);
-        const balanceData = months.map(month => {
-            const income = this.getMonthlyTotal('income', month);
-            const expense = this.getMonthlyTotal('expense', month);
-            return income - expense;
-        });
-
-        this.charts.trendChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: months.map(month => this.formatMonth(month)),
-                datasets: [{
-                    label: 'الرصيد',
-                    data: balanceData,
-                    borderColor: 'rgba(52, 152, 219, 1)',
-                    backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: { grid: { display: false } },
-                    y: { ticks: { callback: (value) => this.formatCurrency(value) } }
-                },
-                plugins: { tooltip: { callbacks: { label: (context) => `الرصيد: ${this.formatCurrency(context.raw)}` } } }
-            }
-        });
-    }
-
-    checkBudgetAlert() {
-        const currentBudget = this.budgets.find(b => b.month === this.currentMonth);
-        if (!currentBudget || !currentBudget.alertEnabled) return;
-
-        const currentMonthExpenses = this.getCurrentMonthTransactions()
-            .filter(t => t.type === 'expense')
-            .reduce((sum, t) => sum + t.amount, 0);
-
-        const progress = (currentMonthExpenses / currentBudget.amount) * 100;
-
-        if (progress >= 80 && progress < 100) {
-            this.showNotification(
-                `تحذير: لقد استهلكت ${progress.toFixed(1)}% من ميزانيتك الشهرية!`,
-                'warning'
-            );
-        } else if (progress >= 100) {
-            this.showNotification(
-                `تحذير: لقد تجاوزت ميزانيتك الشهرية بنسبة ${(progress - 100).toFixed(1)}%!`,
-                'error'
-            );
-        }
-    }
-
-    showModal(type) {
-        const modal = this.modals[type];
-        if (modal) {
-            modal.classList.add('show');
-        }
-    }
-
-    hideModal(modal) {
-        if (modal) {
-            modal.classList.remove('show');
-        }
-    }
-
-    toggleTheme() {
-        const currentTheme = document.body.getAttribute('data-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-
-        document.body.setAttribute('data-theme', newTheme);
-        localStorage.setItem('budgetTheme', newTheme);
-
-        const icon = this.buttons.themeToggle.querySelector('i');
-        if (icon) {
-            icon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-        }
-
-        this.showNotification(`تم التبديل إلى الوضع ${newTheme === 'dark' ? 'الليلي' : 'النهاري'}`, 'info');
-        setTimeout(() => this.updateCharts(), 300);
-    }
-
-    loadTheme() {
-        const savedTheme = localStorage.getItem('budgetTheme') || 'light';
-        document.body.setAttribute('data-theme', savedTheme);
-
-        const icon = this.buttons.themeToggle.querySelector('i');
-        if (icon) {
-            icon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-        }
-    }
-
-    exportDataToFile() {
-        try {
-            const data = {
-                transactions: this.transactions,
-                budgets: this.budgets,
-                exportDate: new Date().toISOString()
-            };
-
-            const dataStr = JSON.stringify(data, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-
-            link.href = url;
-            link.download = `budget-data-${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-
-            this.showNotification('تم تصدير البيانات بنجاح', 'success');
-        } catch (error) {
-            console.error('Export error:', error);
-            this.showNotification('خطأ في تصدير البيانات', 'error');
-        }
-    }
-
-    importDataFromFile(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const importedData = JSON.parse(e.target.result);
-
-                if (importedData.transactions && Array.isArray(importedData.transactions)) {
-                    this.transactions = importedData.transactions;
-                }
-                if (importedData.budgets && Array.isArray(importedData.budgets)) {
-                    this.budgets = importedData.budgets;
-                }
-
-                this.saveData();
-                this.updateDashboard();
-                this.showNotification('تم استيراد البيانات بنجاح', 'success');
-            } catch (error) {
-                console.error('Import error:', error);
-                this.showNotification('خطأ في استيراد الملف. تأكد من صحة التنسيق', 'error');
-            }
-
-            event.target.value = '';
-        };
-
-        reader.readAsText(file);
-    }
-
-    saveData() {
-        try {
-            const data = {
-                transactions: this.transactions,
-                budgets: this.budgets,
-                version: '1.0'
-            };
-            localStorage.setItem('budgetData', JSON.stringify(data));
-        } catch (error) {
-            console.error('Save error:', error);
-            this.showNotification('خطأ في حفظ البيانات', 'error');
-        }
-    }
-
-    loadData() {
-        try {
-            const savedData = localStorage.getItem('budgetData');
-            if (savedData) {
-                const data = JSON.parse(savedData);
-                this.transactions = Array.isArray(data.transactions) ? data.transactions : [];
-                this.budgets = Array.isArray(data.budgets) ? data.budgets : [];
-            }
-        } catch (error) {
-            console.error('Load error:', error);
-            this.transactions = [];
-            this.budgets = [];
-        }
-    }
-
-    getCurrentMonthTransactions() {
-        return this.transactions.filter(t => t.date.startsWith(this.currentMonth));
-    }
-
-    getFilteredTransactions(type, period) {
-        let transactions = this.transactions.filter(t => t.type === type);
-
-        if (period === 'month') {
-            transactions = transactions.filter(t => t.date.startsWith(this.currentMonth));
-        } else if (period === 'year') {
-            const currentYear = new Date().getFullYear();
-            transactions = transactions.filter(t => t.date.startsWith(currentYear));
-        }
-
-        return transactions;
-    }
-
-    getMonths(period) {
-        const months = [];
-        const currentDate = new Date();
-
-        if (period === 'month') {
-            months.push(this.currentMonth);
-        } else if (period === 'year') {
-            for (let i = 0; i < 12; i++) {
-                const date = new Date(currentDate.getFullYear(), i, 1);
-                months.push(date.toISOString().slice(0, 7));
-            }
-        } else {
-            const allMonths = [...new Set(this.transactions.map(t => t.date.slice(0, 7)))];
-            months.push(...allMonths.sort().slice(-12));
-        }
-
-        return months;
-    }
-
-    getMonthlyTotal(type, month) {
-        return this.transactions
-            .filter(t => t.type === type && t.date.startsWith(month))
-            .reduce((sum, t) => sum + t.amount, 0);
-    }
-
-    formatCurrency(amount) {
-        const currencySetting = this.currencies[this.currentCurrency] || this.currencies['USD'];
-
-        const formattedStr = new Intl.NumberFormat(currencySetting.locale, {
-            style: 'decimal',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 2
-        }).format(amount);
-
-        return currencySetting.suffix
-            ? `${formattedStr} ${currencySetting.symbol}`
-            : `${currencySetting.symbol}${formattedStr}`;
-    }
-
-    changeCurrency(newCurrency) {
-        this.currentCurrency = newCurrency;
-        localStorage.setItem('budgetCurrency', newCurrency);
-        this.updateDashboard();
-        setTimeout(() => this.updateCharts(), 100);
-    }
-
-    formatDate(dateString) {
-        return new Date(dateString).toLocaleDateString('ar-EG');
-    }
-
-    formatMonth(monthString) {
-        const date = new Date(monthString + '-01');
-        return date.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long' });
-    }
-
-    getFormValue(elementId) {
-        const element = document.getElementById(elementId);
-        return element ? element.value : '';
-    }
-
-    validateAmount(amount) {
-        return Number.isFinite(amount) && amount > 0;
-    }
-
-    showNotification(message, type = 'info') {
-        const existingNotification = document.querySelector('.notification');
-        if (existingNotification) {
-            existingNotification.remove();
-        }
-
-        const notification = document.createElement('div');
-        notification.className = 'notification';
-        notification.textContent = message;
-        notification.setAttribute('role', 'alert');
-
-        const backgroundColor = type === 'error' ? '#e74c3c' :
-                              type === 'warning' ? '#f39c12' : 
-                              type === 'success' ? '#2ecc71' : '#3498db';
-
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background: ${backgroundColor};
-            color: white;
-            padding: 15px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 10000;
-            transform: translateX(-100%);
-            opacity: 0;
-            transition: transform 0.3s, opacity 0.3s;
-            max-width: 400px;
-            font-weight: 500;
-        `;
-
-        document.body.appendChild(notification);
-
-        setTimeout(() => {
-            notification.style.transform = 'translateX(0)';
-            notification.style.opacity = '1';
-        }, 100);
-
-        setTimeout(() => {
-            notification.style.transform = 'translateX(-100%)';
-            notification.style.opacity = '0';
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
-                }
-            }, 300);
-        }, 4000);
+    to {
+        transform: scale(1);
+        opacity: 1;
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    window.budgetApp = new BudgetApp();
-    window.budgetApp.loadTheme();
-});
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 25px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h2 {
+    color: var(--text-color);
+    font-size: 1.5rem;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-light);
+    transition: var(--transition);
+}
+
+.close-btn:hover {
+    color: var(--accent-color);
+}
+
+.modal-form {
+    padding: 25px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-family: inherit;
+    transition: var(--transition);
+    font-size: 1rem;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.1);
+}
+
+.form-group input[type="checkbox"] {
+    width: auto;
+    margin-left: 10px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 25px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-light);
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    color: var(--border-color);
+}
+
+.empty-state p {
+    font-size: 1.2rem;
+}
+
+@media (max-width: 768px) {
+    .container { padding: 15px; }
+    .header-main {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    .header-controls {
+        width: 100%;
+        justify-content: center;
+    }
+    .budget-summary { grid-template-columns: 1fr; }
+    .summary-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+    }
+    .section-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+    .transaction-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .charts-grid { grid-template-columns: 1fr; }
+    .chart-container { height: 250px; }
+    .transaction-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+    }
+    .transaction-info {
+        justify-content: space-between;
+    }
+    .transaction-actions {
+        align-self: flex-end;
+    }
+    .actions-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 480px) {
+    .actions-grid { grid-template-columns: 1fr; }
+    .modal-content { margin: 10px; }
+    .form-actions { flex-direction: column; }
+    .transaction-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}
